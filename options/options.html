@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>MGCA</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="header">
+        <img src="../icons/icon-32.png" alt="" width="24" height="24" />
+        <div>
+          <h1>MGCA — Make Gameplan Chaotic Again</h1>
+          <p class="subtitle">Add your Gameplan instance to activate the extension on it.</p>
+        </div>
+      </header>
+
+      <form id="add-form" class="add-form">
+        <input
+          id="origin-input"
+          type="text"
+          placeholder="e.g. https://gameplan.example.com"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button type="submit">Add</button>
+      </form>
+      <p id="error" class="error" hidden></p>
+
+      <section class="origins">
+        <h2>Configured instances</h2>
+        <ul id="origin-list"></ul>
+        <p id="empty" class="empty">No instances configured yet.</p>
+      </section>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
