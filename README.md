@@ -1,6 +1,6 @@
 # MGCA — Make Gameplan Chaotic Again
 
-Browser extension (Chrome + Firefox, Manifest V3) that adds an **All Discussions** view to [Gameplan](https://github.com/frappe/gameplan): an extra icon in the community rail opens a panel with a single **All Discussion** space listing every discussion you can access, across all communities and spaces.
+Browser extension (Chrome + Firefox, Manifest V3) that adds an **All Discussions** view to [Gameplan](https://github.com/frappe/gameplan): an extra icon in the community rail opens a full-width panel listing every discussion you can access, across all communities and spaces.
 
 ![MGCA panel showing discussions across all spaces](docs/screenshot.jpg)
 
@@ -12,7 +12,7 @@ Plain JS/CSS, no build step.
 
 **Firefox** — `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → `manifest.json`. (A warning about `service_worker` is expected; that key is for Chrome.)
 
-Then click the toolbar icon, add your Gameplan instance URL, and accept the permission prompt. Reload your Gameplan tab — a chat-bubble icon appears at the bottom of the community rail.
+Then open your Gameplan tab and **click the toolbar icon** — if the page has Gameplan UI it activates instantly and opens the panel (on anything else the icon briefly shows ✕). A follow-up prompt asks to remember the site so it auto-activates on future visits; instances can also be added or removed manually on the options page.
 
 ## Use
 
@@ -22,7 +22,7 @@ Then click the toolbar icon, add your Gameplan instance URL, and accept the perm
 
 ## How it works
 
-No static content scripts: the script is registered dynamically for only the origins you configure, self-verifies the page is a Gameplan frontend, then injects into the rail (a `MutationObserver` keeps it alive across SPA navigations). Discussions come from the whitelisted `get_discussions` endpoint with no `team`/`project` filter — server-side permission filtering still applies — using your existing session cookie. The panel is styled with Gameplan's own CSS tokens, so light/dark theme follows the app.
+No static content scripts: a toolbar click probes the current tab via `activeTab` and injects only when Gameplan UI is detected; granting the follow-up prompt registers the script for that origin so it auto-activates later. The script self-verifies the page is a Gameplan frontend, then injects into the rail (a `MutationObserver` keeps it alive across SPA navigations). Discussions come from the whitelisted `get_discussions` endpoint with no `team`/`project` filter — server-side permission filtering still applies — using your existing session cookie. The panel is styled with Gameplan's own CSS tokens, so light/dark theme follows the app.
 
 ## Distribute without the stores
 

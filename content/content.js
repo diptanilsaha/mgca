@@ -411,57 +411,18 @@
     const overlay = document.createElement('div')
     overlay.className = 'gpx-overlay'
 
-    const sidebar = document.createElement('aside')
-    sidebar.className = 'gpx-sidebar'
-
-    const sidebarHeader = document.createElement('div')
-    sidebarHeader.className = 'gpx-sidebar-header'
-    sidebarHeader.textContent = 'All Discussions'
-    sidebar.appendChild(sidebarHeader)
-
-    const label = document.createElement('div')
-    label.className = 'gpx-sidebar-label'
-    label.textContent = 'Spaces'
-    sidebar.appendChild(label)
-
-    const spaceItem = document.createElement('button')
-    spaceItem.className = 'gpx-space-item gpx-space-item--active'
-    spaceItem.type = 'button'
-    spaceItem.appendChild(svgSpan('space', 'gpx-space-icon'))
-    const spaceTitle = document.createElement('span')
-    spaceTitle.className = 'gpx-space-title'
-    spaceTitle.textContent = 'All Discussion'
-    spaceItem.appendChild(spaceTitle)
-    const spaceCount = document.createElement('span')
-    spaceCount.className = 'gpx-space-count'
-    spaceItem.appendChild(spaceCount)
-    sidebar.appendChild(spaceItem)
-
-    overlay.appendChild(sidebar)
-
     const main = document.createElement('main')
     main.className = 'gpx-main'
 
     const header = document.createElement('header')
     header.className = 'gpx-header'
-    const crumb = document.createElement('div')
-    crumb.className = 'gpx-crumb'
-    const crumbRoot = document.createElement('span')
-    crumbRoot.className = 'gpx-crumb-muted'
-    crumbRoot.textContent = 'All Discussions'
-    const crumbSep = document.createElement('span')
-    crumbSep.className = 'gpx-crumb-muted'
-    crumbSep.textContent = '/'
-    const crumbCurrent = document.createElement('span')
-    crumbCurrent.className = 'gpx-crumb-current'
-    crumbCurrent.appendChild(svgSpan('space', 'gpx-crumb-icon'))
-    const crumbText = document.createElement('span')
-    crumbText.textContent = 'All Discussion'
-    crumbCurrent.appendChild(crumbText)
-    crumb.appendChild(crumbRoot)
-    crumb.appendChild(crumbSep)
-    crumb.appendChild(crumbCurrent)
-    header.appendChild(crumb)
+    const title = document.createElement('div')
+    title.className = 'gpx-crumb-current'
+    title.appendChild(svgSpan('space', 'gpx-crumb-icon'))
+    const titleText = document.createElement('span')
+    titleText.textContent = 'All Discussions'
+    title.appendChild(titleText)
+    header.appendChild(title)
     main.appendChild(header)
 
     const scroll = document.createElement('div')
@@ -652,4 +613,11 @@
   observer.observe(document.body, { childList: true, subtree: true })
   ensureInjected()
   setupReturnFlow()
+
+  // Fired by the background script (same isolated world) right after a
+  // toolbar-click activation, so the panel opens without a second click.
+  window.addEventListener('gpx-open', () => {
+    ensureInjected()
+    openOverlay()
+  })
 })()

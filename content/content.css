@@ -5,7 +5,6 @@
 
 .gpx-overlay {
   --gpx-surface: var(--surface-white, #fff);
-  --gpx-sidebar-bg: var(--surface-sidebar, #f8f8f8);
   --gpx-ink: var(--ink-gray-8, #383838);
   --gpx-ink-mid: var(--ink-gray-6, #525252);
   --gpx-ink-muted: var(--ink-gray-5, #74808b);
@@ -20,7 +19,6 @@
 
 html[data-theme='dark'] .gpx-overlay {
   --gpx-surface: var(--surface-white, #171717);
-  --gpx-sidebar-bg: var(--surface-sidebar, #212121);
   --gpx-ink: var(--ink-gray-8, #ededed);
   --gpx-ink-mid: var(--ink-gray-6, #c7c7c7);
   --gpx-ink-muted: var(--ink-gray-5, #989898);
@@ -91,73 +89,6 @@ html[data-theme='dark'] .gpx-overlay {
   background: var(--gpx-surface);
 }
 
-/* ---------- Spaces sidebar ---------- */
-
-.gpx-sidebar {
-  width: 14rem;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--gpx-sidebar-bg);
-  border-right: 1px solid var(--gpx-outline);
-  padding: 0 8px;
-}
-
-.gpx-sidebar-header {
-  display: flex;
-  align-items: center;
-  height: 48px;
-  padding: 0 8px;
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--gpx-ink);
-  flex-shrink: 0;
-}
-
-.gpx-sidebar-label {
-  padding: 12px 8px 6px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--gpx-ink-muted);
-}
-
-.gpx-space-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 5px 8px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--gpx-ink);
-  font-size: 14px;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.gpx-space-item:hover {
-  background: var(--gpx-hover-2);
-}
-
-.gpx-space-item--active {
-  background: var(--gpx-selected);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-.gpx-space-icon {
-  display: flex;
-  color: var(--gpx-ink-mid);
-}
-
-.gpx-space-title {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* ---------- Main panel ---------- */
 
 .gpx-main {
@@ -174,17 +105,6 @@ html[data-theme='dark'] .gpx-overlay {
   height: 48px;
   padding: 0 16px;
   flex-shrink: 0;
-}
-
-.gpx-crumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.gpx-crumb-muted {
-  color: var(--gpx-ink-muted);
 }
 
 .gpx-crumb-current {

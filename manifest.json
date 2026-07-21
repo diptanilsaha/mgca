@@ -1,16 +1,16 @@
 {
   "manifest_version": 3,
   "name": "MGCA — Make Gameplan Chaotic Again",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Adds an \"All Discussions\" community to your Gameplan sidebar that lists every discussion across all communities and spaces.",
-  "permissions": ["storage", "scripting"],
+  "permissions": ["storage", "scripting", "activeTab"],
   "optional_host_permissions": ["*://*/*"],
   "background": {
     "service_worker": "background.js",
     "scripts": ["background.js"]
   },
   "action": {
-    "default_popup": "options/options.html",
+    "default_title": "MGCA: activate on this Gameplan site",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",
