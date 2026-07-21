@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MGCA — Make Gameplan Chaotic Again",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Adds an \"All Discussions\" community to your Gameplan sidebar that lists every discussion across all communities and spaces.",
   "permissions": ["storage", "scripting", "activeTab"],
   "optional_host_permissions": ["*://*/*"],
