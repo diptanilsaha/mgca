@@ -487,6 +487,20 @@
     positionOverlay()
     if (state.railItemEl) state.railItemEl.classList.add('gpx-active')
 
+    // Back a same-URL history entry so the browser Back button closes the
+    // panel instead of navigating the SPA away. The panel is pure DOM with no
+    // history of its own, so without this Back pops the real route out from
+    // under the overlay (Firefox surfaced this; the popstate handler below
+    // only ran *after* that navigation). Reuse an existing overlay entry
+    // rather than stacking duplicates on repeated open/close.
+    try {
+      if (!(history.state && history.state.gpxOverlay)) {
+        history.pushState(Object.assign({}, history.state, { gpxOverlay: true }), '')
+      }
+    } catch (e) {
+      // history API unavailable — Back degrades to its old behavior
+    }
+
     document.addEventListener('click', onDocumentClick, true)
     document.addEventListener('keydown', onKeydown, true)
     window.addEventListener('popstate', closeOverlay)
