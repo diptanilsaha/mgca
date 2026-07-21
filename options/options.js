@@ -42,11 +42,8 @@ form.addEventListener('submit', (event) => {
         showError('Permission was not granted for ' + origin)
         return
       }
-      const { origins = [] } = await api.storage.sync.get({ origins: [] })
-      if (!origins.includes(origin)) {
-        origins.push(origin)
-        await api.storage.sync.set({ origins })
-      }
+      // Granted permissions are the source of truth — the background sync
+      // derives storage and registrations from them.
       await api.runtime.sendMessage({ type: 'sync-registrations' })
       input.value = ''
       render()
@@ -55,8 +52,6 @@ form.addEventListener('submit', (event) => {
 })
 
 async function removeOrigin(origin) {
-  const { origins = [] } = await api.storage.sync.get({ origins: [] })
-  await api.storage.sync.set({ origins: origins.filter((o) => o !== origin) })
   try {
     await api.permissions.remove({ origins: [origin + '/*'] })
   } catch (e) {

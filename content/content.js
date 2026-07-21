@@ -152,8 +152,6 @@
   // ---------- SVG helpers (static markup only, never server data) ----------
 
   const ICONS = {
-    // lucide message-circle on a dark rounded square, sized like CommunityImage
-    rail: '<svg width="28" height="28" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg"><rect width="28" height="28" rx="7" fill="#383838"/><g transform="translate(5 5) scale(0.75)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></g></svg>',
     space:
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>',
     reply:
@@ -531,7 +529,12 @@
       state.overlayEl.remove()
       state.overlayEl = null
     }
-    if (state.railItemEl) state.railItemEl.classList.remove('gpx-active')
+    if (state.railItemEl) {
+      state.railItemEl.classList.remove('gpx-active')
+      // Clicking the button leaves it focused; drop that so no highlight
+      // lingers after dismissing via Search, Escape, or another rail item.
+      state.railItemEl.blur()
+    }
     document.removeEventListener('click', onDocumentClick, true)
     document.removeEventListener('keydown', onKeydown, true)
     window.removeEventListener('popstate', closeOverlay)
@@ -575,15 +578,58 @@
     return null
   }
 
+  // Tooltip mimicking the native RailItem one: dark bubble to the right,
+  // portaled to <body> so the rail's narrow column can't clip it.
+  let tooltipEl = null
+
+  function hideTooltip() {
+    if (tooltipEl) {
+      tooltipEl.remove()
+      tooltipEl = null
+    }
+  }
+
+  function showTooltip(target, text) {
+    hideTooltip()
+    tooltipEl = document.createElement('div')
+    tooltipEl.className = 'gpx-tooltip'
+    tooltipEl.textContent = text
+    document.body.appendChild(tooltipEl)
+    const rect = target.getBoundingClientRect()
+    tooltipEl.style.left = Math.round(rect.right + 10) + 'px'
+    tooltipEl.style.top =
+      Math.round(rect.top + rect.height / 2 - tooltipEl.offsetHeight / 2) + 'px'
+  }
+
   function buildRailItem() {
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'gpx-rail-item'
-    button.title = 'All Discussions'
     button.setAttribute('aria-label', 'All Discussions')
-    button.appendChild(svgSpan('rail', 'gpx-rail-icon'))
-    button.addEventListener('click', toggleOverlay)
+    button.appendChild(svgSpan('space', 'gpx-rail-icon'))
+    button.addEventListener('click', () => {
+      hideTooltip()
+      toggleOverlay()
+    })
+    button.addEventListener('mouseenter', () => showTooltip(button, 'All Discussions'))
+    button.addEventListener('mouseleave', hideTooltip)
+    button.addEventListener('blur', hideTooltip)
     return button
+  }
+
+  function findInjectionPoint() {
+    // Preferred: directly above the "Customize sidebar" ghost rail item.
+    const customize = document.querySelector(
+      '[data-slot="rail-item"][aria-label="Customize sidebar"]',
+    )
+    if (customize && customize.parentElement) {
+      return { parent: customize.parentElement, before: customize }
+    }
+    const list = findRailList()
+    if (list) return { parent: list, before: null }
+    const root = findRailRoot()
+    if (root) return { parent: root, before: null }
+    return null
   }
 
   function ensureInjected() {
@@ -595,13 +641,30 @@
       closeOverlay()
       return
     }
-    if (state.railItemEl && document.contains(state.railItemEl)) return
+    // Vue re-renders can resurrect a previously-injected button inside a
+    // reused subtree — keep exactly one, the tracked element.
+    for (const el of document.querySelectorAll('.gpx-rail-item')) {
+      if (el !== state.railItemEl) el.remove()
+    }
 
-    const target = findRailList() || findRailRoot()
+    if (state.railItemEl && document.contains(state.railItemEl)) {
+      // The preferred anchor can render after we first injected (Vue mounts
+      // the rail in stages) — move above it as soon as it appears.
+      const customize = document.querySelector(
+        '[data-slot="rail-item"][aria-label="Customize sidebar"]',
+      )
+      if (customize && state.railItemEl.nextElementSibling !== customize) {
+        customize.parentElement.insertBefore(state.railItemEl, customize)
+      }
+      return
+    }
+
+    const target = findInjectionPoint()
     if (!target) return
 
+    hideTooltip() // a Vue re-render can remove the button mid-hover
     state.railItemEl = buildRailItem()
-    target.appendChild(state.railItemEl)
+    target.parent.insertBefore(state.railItemEl, target.before)
     if (state.open) {
       state.railItemEl.classList.add('gpx-active')
       positionOverlay()
@@ -627,11 +690,4 @@
   observer.observe(document.body, { childList: true, subtree: true })
   ensureInjected()
   setupReturnFlow()
-
-  // Fired by the background script (same isolated world) right after a
-  // toolbar-click activation, so the panel opens without a second click.
-  window.addEventListener('gpx-open', () => {
-    ensureInjected()
-    openOverlay()
-  })
 })()

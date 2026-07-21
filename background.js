@@ -2,21 +2,19 @@ const api = globalThis.browser ?? globalThis.chrome
 
 const SCRIPT_ID = 'mgca'
 
-// Single source of truth for content-script registration: reconcile the
-// configured origins in storage with the actually-granted host permissions.
-async function syncRegistrations() {
-  const { origins = [] } = await api.storage.sync.get({ origins: [] })
+// Single-host match pattern like "http://gameplan.localhost:8003/*"
+const HOST_PATTERN = /^https?:\/\/[^*/]+\/\*$/
 
-  const granted = []
-  for (const origin of origins) {
-    try {
-      if (await api.permissions.contains({ origins: [origin + '/*'] })) {
-        granted.push(origin)
-      }
-    } catch (e) {
-      // invalid pattern in storage — skip it
-    }
-  }
+// Single source of truth for content-script registration: every granted host
+// permission gets the content script registered, so an allowed Gameplan site
+// loads the extension on page load — no matter how the permission was granted
+// (our prompt, the options page, or the browser's own site-access settings).
+async function syncRegistrations() {
+  const { origins: grantedPatterns = [] } = await api.permissions.getAll()
+  const matches = grantedPatterns.filter((pattern) => HOST_PATTERN.test(pattern))
+
+  // Mirror into storage so the options page lists what's actually active.
+  await api.storage.sync.set({ origins: matches.map((pattern) => pattern.slice(0, -2)) })
 
   // Clear every registration this extension owns, not just SCRIPT_ID — a
   // registration left over from an older id would otherwise double-inject.
@@ -25,11 +23,11 @@ async function syncRegistrations() {
     await api.scripting.unregisterContentScripts({ ids: existing.map((script) => script.id) })
   }
 
-  if (granted.length) {
+  if (matches.length) {
     await api.scripting.registerContentScripts([
       {
         id: SCRIPT_ID,
-        matches: granted.map((origin) => origin + '/*'),
+        matches,
         js: ['content/content.js'],
         css: ['content/content.css'],
         runAt: 'document_idle',
@@ -59,55 +57,57 @@ async function flashBadge(tabId, text, title) {
   }, 2500)
 }
 
-// One-click activation: on a page with Gameplan UI, inject immediately via
-// activeTab (no prompt), open the panel, then best-effort request permanent
-// host permission so future loads auto-activate.
-api.action.onClicked.addListener(async (tab) => {
+// One-click activation. permissions.request MUST be the first call, made
+// synchronously inside the click gesture — after any await the browser
+// treats the request as gesture-less and rejects it, which silently degrades
+// activation to the per-tab activeTab grant that dies on reload. So: request
+// the permanent grant first, then probe; if the page turns out not to be
+// Gameplan, release the permission again.
+api.action.onClicked.addListener((tab) => {
   if (!tab.id || !tab.url || !/^https?:/.test(tab.url)) return
-  const origin = new URL(tab.url).origin
+  const tabId = tab.id
+  const pattern = new URL(tab.url).origin + '/*'
 
-  let isGameplan = false
-  try {
-    const [probe] = await api.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: detectGameplan,
-    })
-    isGameplan = !!(probe && probe.result)
-  } catch (e) {
-    // page not scriptable (browser UI page, PDF, ...)
-  }
-  if (!isGameplan) {
-    flashBadge(tab.id, '✕', 'MGCA: this does not look like a Gameplan site')
-    return
-  }
+  const requesting = api.permissions.request({ origins: [pattern] }).catch(() => false)
 
-  await api.scripting.insertCSS({ target: { tabId: tab.id }, files: ['content/content.css'] })
-  await api.scripting.executeScript({ target: { tabId: tab.id }, files: ['content/content.js'] })
-  // content.js listens for this in the same isolated world and opens the panel
-  await api.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: () => window.dispatchEvent(new CustomEvent('gpx-open')),
-  })
+  requesting.then(async (granted) => {
+    let isGameplan = false
+    try {
+      const [probe] = await api.scripting.executeScript({ target: { tabId }, func: detectGameplan })
+      isGameplan = !!(probe && probe.result)
+    } catch (e) {
+      // page not scriptable (browser UI page, PDF, ...)
+    }
 
-  try {
-    const granted = await api.permissions.request({ origins: [origin + '/*'] })
-    if (granted) {
-      const { origins = [] } = await api.storage.sync.get({ origins: [] })
-      if (!origins.includes(origin)) {
-        origins.push(origin)
-        await api.storage.sync.set({ origins })
+    if (!isGameplan) {
+      if (granted) {
+        try {
+          await api.permissions.remove({ origins: [pattern] })
+        } catch (e) {
+          // nothing to release
+        }
       }
+      flashBadge(tabId, '✕', 'MGCA: this does not look like a Gameplan site')
+      return
+    }
+
+    if (granted) {
+      // Permanent: registers the content script so every future page load
+      // auto-activates until the permission is removed.
       await syncRegistrations()
     }
-  } catch (e) {
-    // Some browsers reject permissions.request here (gesture already spent).
-    // The activeTab injection above still works for this tab; permanence can
-    // be granted any time from the options page.
-  }
+
+    // Inject into this tab now either way (activeTab covers a denied prompt):
+    // the "All Discussions" button appears in the rail, and the user opens
+    // the panel from there.
+    await api.scripting.insertCSS({ target: { tabId }, files: ['content/content.css'] })
+    await api.scripting.executeScript({ target: { tabId }, files: ['content/content.js'] })
+  })
 })
 
 api.runtime.onInstalled.addListener(() => syncRegistrations())
 api.runtime.onStartup.addListener(() => syncRegistrations())
+api.permissions.onAdded.addListener(() => syncRegistrations())
 api.permissions.onRemoved.addListener(() => syncRegistrations())
 
 api.runtime.onMessage.addListener((message, _sender, sendResponse) => {
